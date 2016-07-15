@@ -57,7 +57,7 @@ public class DataPointSearchController {
     public static final String CREATED_BEFORE_PARAMETER = "created_before";
     public static final String CREATED_ON_OR_AFTER_PARAMETER = "created_on_or_after";
     public static final String END_USER_ID_PARAMETER = "end_user_id";
-    public static final String QUERY_PARAMETER = "query";
+    public static final String FILTER_PARAMETER = "filter";
     public static final String SCHEMA_NAME_PARAMETER = "schema_name";
     public static final String SCHEMA_NAMESPACE_PARAMETER = "schema_namespace";
     // TODO searching by schema version should support wildcards, sticking to exact match for now
@@ -98,7 +98,7 @@ public class DataPointSearchController {
             @RequestParam(value = SCHEMA_NAMESPACE_PARAMETER) final String schemaNamespace,
             @RequestParam(value = SCHEMA_NAME_PARAMETER) final String schemaName,
             @RequestParam(value = SCHEMA_VERSION_PARAMETER, required = false) final String schemaVersion,
-            @RequestParam(value = QUERY_PARAMETER, required = false) final String queryFilter,
+            @RequestParam(value = FILTER_PARAMETER, required = false) final String queryFilter,
             @RequestParam(value = END_USER_ID_PARAMETER, required = false) final String specifiedEndUserId,
             @RequestParam(value = CREATED_ON_OR_AFTER_PARAMETER, required = false)
 
@@ -147,7 +147,7 @@ public class DataPointSearchController {
     @RequestMapping(value = "/v1.0.M2/dataPoints", method = {HEAD, GET}, produces = APPLICATION_JSON_VALUE)
     @ResponseBody
     public ResponseEntity<Iterable<DataPoint>> findDataPointsM2(
-            @RequestParam(value = QUERY_PARAMETER, required = true) final String queryFilter,
+            @RequestParam(value = FILTER_PARAMETER, required = true) final String queryFilter,
             @RequestParam(value = END_USER_ID_PARAMETER, required = false) final String specifiedEndUserId,
             @RequestParam(value = RESULT_OFFSET_PARAMETER, defaultValue = "0") final Integer offset,
             @RequestParam(value = RESULT_LIMIT_PARAMETER, defaultValue = DEFAULT_RESULT_LIMIT) final Integer limit,
