@@ -104,26 +104,26 @@ public abstract class DataPointRepositoryIntegrationTests {
     @Test(expected = NullPointerException.class)
     public void findBySearchCriteriaShouldThrowExceptionWithUndefinedCriteria() {
 
-        repository.findBySearchCriteria(null, null, null, null);
+        repository.findBySearchCriteria(null, null, null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void findBySearchCriteriaShouldThrowExceptionWithNegativeOffset() {
 
-        repository.findBySearchCriteria(null, newSearchCriteriaBuilder().build(), -1, null);
+        repository.findBySearchCriteria(newSearchCriteriaBuilder().build().asQueryFilter(), -1, null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void findBySearchCriteriaShouldThrowExceptionWithNegativeLimit() {
 
-        repository.findBySearchCriteria(null, newSearchCriteriaBuilder().build(), null, -1);
+        repository.findBySearchCriteria(newSearchCriteriaBuilder().build().asQueryFilter(), null, -1);
     }
 
 
     @Test
     public void findBySearchCriteriaWithMatchingFilterShouldReturnDataPoints() {
         List<DataPoint> dataPoints =
-                newArrayList(repository.findBySearchCriteria("body.activity_name=='walking'", newSearchCriteriaBuilder().build(), null, null));
+                newArrayList(repository.findBySearchCriteria("body.activity_name=='walking' and " + newSearchCriteriaBuilder().build().asQueryFilter(), null, null));
 //
         assertThat(dataPoints, hasSize(1));
         assertThatDataPointsAreEqual(dataPoints.get(0), testDataPoint);
@@ -132,7 +132,7 @@ public abstract class DataPointRepositoryIntegrationTests {
     @Test
     public void findBySearchCriteriaWithMatchingFailingFilterShouldNotReturnDataPoints() {
         List<DataPoint> dataPoints =
-                newArrayList(repository.findBySearchCriteria("body.activity_name != 'walking'", newSearchCriteriaBuilder().build(), null, null));
+                newArrayList(repository.findBySearchCriteria("body.activity_name != 'walking' and " + newSearchCriteriaBuilder().build().asQueryFilter(), null, null));
 
         assertThat(dataPoints, empty());
     }
@@ -146,7 +146,7 @@ public abstract class DataPointRepositoryIntegrationTests {
     public void findBySearchCriteriaShouldReturnDataPointsMatchingUserId() {
 
         List<DataPoint> dataPoints =
-                newArrayList(repository.findBySearchCriteria(null, newSearchCriteriaBuilder().build(), null, null));
+                newArrayList(repository.findBySearchCriteria(newSearchCriteriaBuilder().build().asQueryFilter(), null, null));
 
         assertThat(dataPoints, hasSize(1));
         assertThatDataPointsAreEqual(dataPoints.get(0), testDataPoint);
@@ -157,7 +157,7 @@ public abstract class DataPointRepositoryIntegrationTests {
 
         DataPointSearchCriteria searchCriteria = newSearchCriteriaBuilder().setUserId(UNRECOGNIZED_ID).build();
 
-        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(null, searchCriteria, null, null));
+        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(searchCriteria.asQueryFilter(), null, null));
 
         assertThat(dataPoints, empty());
     }
@@ -167,7 +167,7 @@ public abstract class DataPointRepositoryIntegrationTests {
 
         DataPointSearchCriteria searchCriteria = newSearchCriteriaBuilder().setSchemaNamespace(UNRECOGNIZED_ID).build();
 
-        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(null, searchCriteria, null, null));
+        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(searchCriteria.asQueryFilter(), null, null));
 
         assertThat(dataPoints, empty());
     }
@@ -177,7 +177,7 @@ public abstract class DataPointRepositoryIntegrationTests {
 
         DataPointSearchCriteria searchCriteria = newSearchCriteriaBuilder().setSchemaName(UNRECOGNIZED_ID).build();
 
-        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(null, searchCriteria, null, null));
+        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(searchCriteria.asQueryFilter(), null, null));
 
         assertThat(dataPoints, empty());
     }
@@ -187,7 +187,7 @@ public abstract class DataPointRepositoryIntegrationTests {
 
         DataPointSearchCriteria searchCriteria = newSearchCriteriaBuilder().setSchemaVersionMajor(0).build();
 
-        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(null, searchCriteria, null, null));
+        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(searchCriteria.asQueryFilter(), null, null));
 
         assertThat(dataPoints, empty());
     }
@@ -197,7 +197,7 @@ public abstract class DataPointRepositoryIntegrationTests {
 
         DataPointSearchCriteria searchCriteria = newSearchCriteriaBuilder().setSchemaVersionMinor(0).build();
 
-        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(null, searchCriteria, null, null));
+        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(searchCriteria.asQueryFilter(), null, null));
 
         assertThat(dataPoints, empty());
     }
@@ -212,7 +212,7 @@ public abstract class DataPointRepositoryIntegrationTests {
 
         DataPointSearchCriteria searchCriteria = newSearchCriteriaBuilder().setSchemaVersionQualifier("RC1").build();
 
-        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(null, searchCriteria, null, null));
+        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(searchCriteria.asQueryFilter(), null, null));
 
         assertThat(dataPoints, hasSize(1));
         assertThatDataPointsAreEqual(dataPoints.get(0), newTestDataPoint);
@@ -223,7 +223,7 @@ public abstract class DataPointRepositoryIntegrationTests {
 
         DataPointSearchCriteria searchCriteria = newSearchCriteriaBuilder().setSchemaVersionQualifier("RC1").build();
 
-        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(null, searchCriteria, null, null));
+        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(searchCriteria.asQueryFilter(), null, null));
 
         assertThat(dataPoints, empty());
     }
@@ -238,7 +238,7 @@ public abstract class DataPointRepositoryIntegrationTests {
 
         DataPointSearchCriteria searchCriteria = newSearchCriteriaBuilder().build();
 
-        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(null, searchCriteria, null, null));
+        List<DataPoint> dataPoints = newArrayList(repository.findBySearchCriteria(searchCriteria.asQueryFilter(), null, null));
 
         assertThat(dataPoints, hasSize(1));
         assertThatDataPointsAreEqual(dataPoints.get(0), testDataPoint);

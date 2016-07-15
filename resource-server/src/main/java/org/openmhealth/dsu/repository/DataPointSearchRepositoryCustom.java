@@ -16,7 +16,6 @@
 
 package org.openmhealth.dsu.repository;
 
-import org.openmhealth.dsu.domain.DataPointSearchCriteria;
 import org.openmhealth.schema.domain.omh.DataPoint;
 
 import javax.annotation.Nullable;
@@ -30,7 +29,7 @@ import javax.annotation.Nullable;
 public interface DataPointSearchRepositoryCustom {
 
 
-    Iterable<DataPoint> findBySearchCriteria(String queryFilter, DataPointSearchCriteria searchCriteria, @Nullable Integer offset,
+    Iterable<DataPoint> findBySearchCriteria(String queryFilter, @Nullable Integer offset,
                                              @Nullable Integer limit);
 
 

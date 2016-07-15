@@ -25,6 +25,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -46,7 +47,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.HEAD;
  *
  * @author Emerson Farrugia
  */
-@ApiController
+@Controller
 public class DataPointSearchController {
 
     /*
@@ -91,7 +92,7 @@ public class DataPointSearchController {
     // only allow clients with read scope to read data points
     @PreAuthorize("#oauth2.clientHasRole('" + CLIENT_ROLE + "') and #oauth2.hasScope('" + DATA_POINT_READ_SCOPE + "')")
     // TODO look into any meaningful @PostAuthorize filtering
-    @RequestMapping(value = "/dataPoints", method = {HEAD, GET}, produces = APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/v1.0.M1/dataPoints", method = {HEAD, GET}, produces = APPLICATION_JSON_VALUE)
     @ResponseBody
     public ResponseEntity<Iterable<DataPoint>> findDataPoints(
             @RequestParam(value = SCHEMA_NAMESPACE_PARAMETER) final String schemaNamespace,
@@ -125,20 +126,44 @@ public class DataPointSearchController {
             return badRequest().body(null);
         }
 
-        Iterable<DataPoint> dataPoints = dataPointSearchService.findBySearchCriteria(queryFilter, searchCriteria, offset, limit);
+        String combinedFilter = searchCriteria.asQueryFilter();
+        if (queryFilter != null) {
+            combinedFilter += " and " + queryFilter;
+        }
 
+        return findDataPointsM2(combinedFilter, specifiedEndUserId, offset, limit, authentication);
+    }
 
-        HttpHeaders headers = new HttpHeaders();
+    /**
+     * Finds and retrieves datapoints, based on the passed in query.
+     *
+     * @param queryFilter an optional RSQL-formatted query to filter results with
+     * @param offset      the number of data points to skip
+     * @param limit       the number of data points to return
+     * @return a list of matching data points
+     */
+    @PreAuthorize("#oauth2.clientHasRole('" + CLIENT_ROLE + "') and #oauth2.hasScope('" + DATA_POINT_READ_SCOPE + "')")
+    // TODO look into any meaningful @PostAuthorize filtering
+    @RequestMapping(value = "/v1.0.M2/dataPoints", method = {HEAD, GET}, produces = APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<Iterable<DataPoint>> findDataPointsM2(
+            @RequestParam(value = QUERY_PARAMETER, required = true) final String queryFilter,
+            @RequestParam(value = END_USER_ID_PARAMETER, required = false) final String specifiedEndUserId,
+            @RequestParam(value = RESULT_OFFSET_PARAMETER, defaultValue = "0") final Integer offset,
+            @RequestParam(value = RESULT_LIMIT_PARAMETER, defaultValue = DEFAULT_RESULT_LIMIT) final Integer limit,
+            Authentication authentication) {
 
-        // FIXME add pagination headers
-        // headers.set("Next");
-        // headers.set("Previous");
+        // determine the user associated with the access token to restrict the search accordingly
+        String endUserId = getEndUserId(authentication); // FIXME
+        Iterable<DataPoint> dataPoints = dataPointSearchService.findBySearchCriteria(queryFilter, offset, limit);
 
-        return new ResponseEntity<>(dataPoints, headers, OK);
+        return new ResponseEntity<>(dataPoints, new HttpHeaders(), OK);
     }
 
     public String getEndUserId(Authentication authentication) {
 
         return ((EndUserUserDetails) authentication.getPrincipal()).getUsername();
     }
+
+
 }

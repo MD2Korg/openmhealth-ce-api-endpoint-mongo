@@ -28,6 +28,9 @@ import javax.validation.constraints.Size;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
+import static com.google.common.collect.BoundType.CLOSED;
+import static java.lang.String.format;
+
 
 /**
  * A bean that represents a search for data points.
@@ -195,4 +198,49 @@ public class DataPointSearchCriteria {
 
         return Range.all();
     }
+
+    public String asQueryFilter() {
+        String result = format("header.user_id == '%s' and header.schema_id.namespace == '%s' and header.schema_id.name == '%s'",
+                getUserId(), getSchemaNamespace(), getSchemaName());
+
+        if (getSchemaVersion().isPresent()) {
+            SchemaVersion version = getSchemaVersion().get();
+
+            result += format(" and header.schema_id.version.major == %d and header.schema_id.version.minor == %d", version.getMajor(), version.getMinor());
+
+            if (version.getQualifier().isPresent()) {
+                result += format(" and header.schema_id.version.qualifier == '%s'", version.getQualifier().get());
+            } else {
+                result += " and header.schema_id.version.qualifier =ex= false";
+            }
+        }
+
+        result += addCreationTimestampCriteria(getCreationTimestampRange());
+
+        return result;
+
+
+    }
+
+    String addCreationTimestampCriteria(Range<OffsetDateTime> timestampRange) {
+
+        String result = "";
+
+        if (timestampRange.hasLowerBound() || timestampRange.hasUpperBound()) {
+
+
+            result = " and header.creation_date_time";
+
+            if (timestampRange.hasLowerBound()) {
+                result += ((timestampRange.lowerBoundType() == CLOSED) ? " >= " : " > ") + format("'%s'", timestampRange.lowerEndpoint());
+            }
+
+            if (timestampRange.hasUpperBound()) {
+                result += ((timestampRange.upperBoundType() == CLOSED) ? " <= " : " < ") + format("'%s'", timestampRange.upperEndpoint().toEpochSecond());
+            }
+
+        }
+        return result;
+    }
+
 }

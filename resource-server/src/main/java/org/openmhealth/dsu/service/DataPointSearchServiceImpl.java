@@ -16,7 +16,6 @@
 
 package org.openmhealth.dsu.service;
 
-import org.openmhealth.dsu.domain.DataPointSearchCriteria;
 import org.openmhealth.dsu.repository.DataPointRepository;
 import org.openmhealth.schema.domain.omh.DataPoint;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 
 /**
@@ -40,13 +38,12 @@ public class DataPointSearchServiceImpl implements DataPointSearchService {
 
     @Override
     @Transactional(readOnly = true)
-    public Iterable<DataPoint> findBySearchCriteria(String queryFilter, DataPointSearchCriteria searchCriteria, @Nullable Integer offset,
+    public Iterable<DataPoint> findBySearchCriteria(String queryFilter, @Nullable Integer offset,
                                                     @Nullable Integer limit) {
 
-        checkNotNull(searchCriteria);
         checkArgument(offset == null || offset >= 0);
         checkArgument(limit == null || limit >= 0);
 
-        return repository.findBySearchCriteria(queryFilter, searchCriteria, offset, limit);
+        return repository.findBySearchCriteria(queryFilter, offset, limit);
     }
 }
