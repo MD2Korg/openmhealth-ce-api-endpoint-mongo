@@ -25,6 +25,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,6 +34,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import javax.validation.Validator;
 import java.time.OffsetDateTime;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.String.format;
 import static org.openmhealth.dsu.configuration.OAuth2Properties.CLIENT_ROLE;
 import static org.openmhealth.dsu.configuration.OAuth2Properties.DATA_POINT_READ_SCOPE;
 import static org.springframework.http.HttpStatus.OK;
@@ -100,16 +103,14 @@ public class DataPointSearchController {
             @RequestParam(value = SCHEMA_VERSION_PARAMETER, required = false) final String schemaVersion,
             @RequestParam(value = FILTER_PARAMETER, required = false) final String queryFilter,
             @RequestParam(value = END_USER_ID_PARAMETER, required = false) final String specifiedEndUserId,
-            @RequestParam(value = CREATED_ON_OR_AFTER_PARAMETER, required = false)
-
-            final OffsetDateTime createdOnOrAfter,
+            @RequestParam(value = CREATED_ON_OR_AFTER_PARAMETER, required = false) final OffsetDateTime createdOnOrAfter,
             @RequestParam(value = CREATED_BEFORE_PARAMETER, required = false) final OffsetDateTime createdBefore,
             @RequestParam(value = RESULT_OFFSET_PARAMETER, defaultValue = "0") final Integer offset,
             @RequestParam(value = RESULT_LIMIT_PARAMETER, defaultValue = DEFAULT_RESULT_LIMIT) final Integer limit,
             Authentication authentication) {
 
         // determine the user associated with the access token to restrict the search accordingly
-        String endUserId = getEndUserId(authentication);
+        String endUserId = getEndUserId(authentication, specifiedEndUserId);
 
         DataPointSearchCriteria searchCriteria = new DataPointSearchCriteria();
 
@@ -147,20 +148,29 @@ public class DataPointSearchController {
     @RequestMapping(value = "/v1.0.M2/dataPoints", method = {HEAD, GET}, produces = APPLICATION_JSON_VALUE)
     @ResponseBody
     public ResponseEntity<Iterable<DataPoint>> findDataPointsM2(
-            @RequestParam(value = FILTER_PARAMETER, required = true) final String queryFilter,
+            @RequestParam(value = FILTER_PARAMETER) final String queryFilter,
             @RequestParam(value = END_USER_ID_PARAMETER, required = false) final String specifiedEndUserId,
             @RequestParam(value = RESULT_OFFSET_PARAMETER, defaultValue = "0") final Integer offset,
             @RequestParam(value = RESULT_LIMIT_PARAMETER, defaultValue = DEFAULT_RESULT_LIMIT) final Integer limit,
             Authentication authentication) {
 
         // determine the user associated with the access token to restrict the search accordingly
-        String endUserId = getEndUserId(authentication); // FIXME
-        Iterable<DataPoint> dataPoints = dataPointSearchService.findBySearchCriteria(queryFilter, offset, limit);
+        String endUserId = getEndUserId(authentication, specifiedEndUserId);
+        checkNotNull(endUserId);
+        String filter = format("header.user_id == '%s' and %s", endUserId, queryFilter);
+        Iterable<DataPoint> dataPoints = dataPointSearchService.findBySearchCriteria(filter, offset, limit);
 
         return new ResponseEntity<>(dataPoints, new HttpHeaders(), OK);
     }
 
-    public String getEndUserId(Authentication authentication) {
+    public String getEndUserId(Authentication authentication, String specifiedEndUserId) {
+
+        if (authentication instanceof OAuth2Authentication) {
+            String grant = ((OAuth2Authentication) authentication).getOAuth2Request().getRequestParameters().get("grant_type");
+            if ("client_credentials".equals(grant)) {
+                return specifiedEndUserId;
+            }
+        }
 
         return ((EndUserUserDetails) authentication.getPrincipal()).getUsername();
     }
