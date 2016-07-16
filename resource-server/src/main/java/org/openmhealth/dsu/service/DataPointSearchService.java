@@ -36,4 +36,14 @@ public interface DataPointSearchService {
      */
     Iterable<DataPoint> findBySearchCriteria(String queryFilter, @Nullable Integer offset,
                                              @Nullable Integer limit);
+
+    /**
+     * Return the distinct participants instead of the actual datapoints.
+     *
+     * @param queryFilter RSQL-formatted query to parse and pass along to mongo
+     * @param offset      the index of the first matching data point to return
+     * @param limit       the number of matching data points to return
+     * @return Set of participant IDs
+     */
+    Iterable<String> findParticipantsBySearchCriteria(String queryFilter, Integer offset, Integer limit);
 }

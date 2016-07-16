@@ -26,6 +26,7 @@ import com.github.rutledgepaulv.rqe.conversions.parsers.StringToObjectBestEffort
 import com.github.rutledgepaulv.rqe.pipes.DefaultArgumentConversionPipe;
 import com.github.rutledgepaulv.rqe.pipes.QueryConversionPipeline;
 import com.github.rutledgepaulv.rqe.resolvers.MongoPersistentEntityFieldTypeResolver;
+import com.google.common.collect.Sets;
 import org.openmhealth.schema.domain.omh.DataPoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.ConversionService;
@@ -35,6 +36,7 @@ import org.springframework.data.mongodb.core.query.Query;
 
 import javax.annotation.Nullable;
 import java.time.OffsetDateTime;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -88,6 +90,40 @@ public class MongoDataPointRepositoryImpl implements DataPointSearchRepositoryCu
 
         return mongoOperations.find(query, DataPoint.class);
     }
+
+    @Override
+    public Iterable<String> findParticipantsBySearchCriteria(String queryFilter, Integer offset, Integer limit) {
+
+        checkNotNull(queryFilter);
+        checkArgument(offset == null || offset >= 0);
+        checkArgument(limit == null || limit >= 0);
+
+        Query query = newQuery(queryFilter);
+
+        if (offset != null) {
+            query.skip(offset);
+        }
+
+        if (limit != null) {
+            query.limit(limit);
+        }
+
+        // FIXME offload this to DB
+        Set<String> distinct = Sets.newHashSet();
+        mongoOperations
+                .find(query, DataPoint.class)
+                .forEach(dataPoint -> distinct.add(dataPoint.getHeader().getUserId()));
+
+//        AggregationResults<ParticipantCount> groupResults = mongoOperations.aggregate(
+//
+//                newAggregation(match(filterQuery), unwind("header.userId"),
+//                        group("header.userId").addToSet("header.userId").as("userId")), DataPoint.class, ParticipantCount.class);
+//        List<ParticipantCount> result = groupResults.getMappedResults();
+
+        return distinct;
+    }
+
+
 
 
     private Query newQuery(String queryFilter) {

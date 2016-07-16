@@ -31,6 +31,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.openmhealth.dsu.factory.DataPointFactory.*;
 
@@ -128,6 +129,16 @@ public abstract class DataPointRepositoryIntegrationTests {
         assertThat(dataPoints, hasSize(1));
         assertThatDataPointsAreEqual(dataPoints.get(0), testDataPoint);
     }
+
+    @Test
+    public void findParticipantBySearchCriteriaWithMatchingFilterShouldReturnDataPoints() {
+        List<String> dataPoints =
+                newArrayList(repository.findParticipantsBySearchCriteria("body.activity_name=='walking' and " + newSearchCriteriaBuilder().build().asQueryFilter(), null, null));
+//
+        assertThat(dataPoints, hasSize(1));
+        assertEquals("test", dataPoints.get(0));
+    }
+
 
     @Test
     public void findBySearchCriteriaWithMatchingFailingFilterShouldNotReturnDataPoints() {
