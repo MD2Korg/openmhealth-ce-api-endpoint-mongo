@@ -33,6 +33,7 @@ import static org.openmhealth.dsu.configuration.OAuth2Properties.*;
 import static org.openmhealth.dsu.controller.CommonControllerUtil.getEndUserId;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.http.ResponseEntity.badRequest;
 import static org.springframework.web.bind.annotation.RequestMethod.*;
 
 
@@ -91,6 +92,8 @@ public class DataPointController {
         // set the owner of the data point to be the user associated with the access token
         if (endUserId != null) { // will be null for client_credentials grant
             setDataPointHeaderEndUserId(dataPoint.getHeader(), endUserId);
+        } else if (dataPoint.getHeader().getUserId() == null) {
+            return badRequest().body(null);
         }
         dataPointService.save(dataPoint);
 

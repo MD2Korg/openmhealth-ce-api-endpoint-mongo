@@ -54,8 +54,6 @@ public class DataPointSearchCriteria {
     /**
      * @return the user the data points belong to
      */
-    @NotNull
-    @Size(min = 1)
     public String getUserId() {
         return userId;
     }
@@ -200,8 +198,13 @@ public class DataPointSearchCriteria {
     }
 
     public String asQueryFilter() {
-        String result = format("header.user_id == '%s' and header.schema_id.namespace == '%s' and header.schema_id.name == '%s'",
-                getUserId(), getSchemaNamespace(), getSchemaName());
+        String result = "";
+
+        if (getUserId() != null) {
+            result += format("header.user_id == '%s' and ", getUserId());
+        }
+        result += format("header.schema_id.namespace == '%s' and header.schema_id.name == '%s'",
+                getSchemaNamespace(), getSchemaName());
 
         if (getSchemaVersion().isPresent()) {
             SchemaVersion version = getSchemaVersion().get();

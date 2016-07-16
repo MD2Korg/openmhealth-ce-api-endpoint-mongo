@@ -32,7 +32,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import javax.validation.Validator;
 import java.time.OffsetDateTime;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 import static org.openmhealth.dsu.configuration.OAuth2Properties.CLIENT_ROLE;
 import static org.openmhealth.dsu.configuration.OAuth2Properties.DATA_POINT_READ_SCOPE;
@@ -155,8 +154,10 @@ public class DataPointSearchController {
 
         // determine the user associated with the access token to restrict the search accordingly
         String endUserId = getEndUserId(authentication, specifiedEndUserId);
-        checkNotNull(endUserId);
-        String filter = format("header.user_id == '%s' and %s", endUserId, queryFilter);
+        String filter = queryFilter;
+        if (endUserId != null) {
+            filter = format("header.user_id == '%s' and %s", endUserId, filter);
+        }
         Iterable<DataPoint> dataPoints = dataPointSearchService.findBySearchCriteria(filter, offset, limit);
 
         return new ResponseEntity<>(dataPoints, new HttpHeaders(), OK);
