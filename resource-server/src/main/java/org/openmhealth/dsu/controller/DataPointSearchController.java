@@ -17,7 +17,6 @@
 package org.openmhealth.dsu.controller;
 
 import org.openmhealth.dsu.domain.DataPointSearchCriteria;
-import org.openmhealth.dsu.domain.EndUserUserDetails;
 import org.openmhealth.dsu.service.DataPointSearchService;
 import org.openmhealth.schema.domain.omh.DataPoint;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +24,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -38,6 +36,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 import static org.openmhealth.dsu.configuration.OAuth2Properties.CLIENT_ROLE;
 import static org.openmhealth.dsu.configuration.OAuth2Properties.DATA_POINT_READ_SCOPE;
+import static org.openmhealth.dsu.controller.CommonControllerUtil.getEndUserId;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.ResponseEntity.badRequest;
@@ -161,18 +160,6 @@ public class DataPointSearchController {
         Iterable<DataPoint> dataPoints = dataPointSearchService.findBySearchCriteria(filter, offset, limit);
 
         return new ResponseEntity<>(dataPoints, new HttpHeaders(), OK);
-    }
-
-    public String getEndUserId(Authentication authentication, String specifiedEndUserId) {
-
-        if (authentication instanceof OAuth2Authentication) {
-            String grant = ((OAuth2Authentication) authentication).getOAuth2Request().getRequestParameters().get("grant_type");
-            if ("client_credentials".equals(grant)) {
-                return specifiedEndUserId;
-            }
-        }
-
-        return ((EndUserUserDetails) authentication.getPrincipal()).getUsername();
     }
 
 

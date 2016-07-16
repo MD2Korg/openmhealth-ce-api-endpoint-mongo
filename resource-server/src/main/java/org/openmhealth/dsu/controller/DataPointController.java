@@ -16,13 +16,11 @@
 
 package org.openmhealth.dsu.controller;
 
-import org.openmhealth.dsu.domain.EndUserUserDetails;
 import org.openmhealth.dsu.service.DataPointService;
 import org.openmhealth.schema.domain.omh.DataPoint;
 import org.openmhealth.schema.domain.omh.DataPointHeader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +30,7 @@ import java.lang.reflect.Field;
 import java.util.Optional;
 
 import static org.openmhealth.dsu.configuration.OAuth2Properties.*;
+import static org.openmhealth.dsu.controller.CommonControllerUtil.getEndUserId;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.*;
@@ -60,7 +59,6 @@ public class DataPointController {
     // only allow clients with read scope to read a data point
     @PreAuthorize("#oauth2.clientHasRole('" + CLIENT_ROLE + "') and #oauth2.hasScope('" + DATA_POINT_READ_SCOPE + "')")
     // ensure that the returned data point belongs to the user associated with the access token
-    @PostAuthorize("returnObject.body == null || returnObject.body.header.userId == principal.username")
     @RequestMapping(value = "/dataPoints/{id}", method = {HEAD, GET}, produces = APPLICATION_JSON_VALUE)
     @ResponseBody
     public ResponseEntity<DataPoint> readDataPoint(@PathVariable String id) {
@@ -70,8 +68,6 @@ public class DataPointController {
         if (!dataPoint.isPresent()) {
             return new ResponseEntity<>(NOT_FOUND);
         }
-
-        // FIXME test @PostAuthorize
         return new ResponseEntity<>(dataPoint.get(), OK);
     }
 
@@ -90,20 +86,17 @@ public class DataPointController {
             return new ResponseEntity<>(CONFLICT);
         }
 
-        String endUserId = getEndUserId(authentication);
+        String endUserId = getEndUserId(authentication, null);
 
         // set the owner of the data point to be the user associated with the access token
-        setDataPointHeaderEndUserId(dataPoint.getHeader(), endUserId);
-
+        if (endUserId != null) { // will be null for client_credentials grant
+            setDataPointHeaderEndUserId(dataPoint.getHeader(), endUserId);
+        }
         dataPointService.save(dataPoint);
 
         return new ResponseEntity<>(CREATED);
     }
 
-    private String getEndUserId(Authentication authentication) {
-
-        return ((EndUserUserDetails) authentication.getPrincipal()).getUsername();
-    }
 
     // this is currently implemented using reflection, until we see other use cases where mutability would be useful
     private void setDataPointHeaderEndUserId(DataPointHeader header, String endUserId) {
@@ -127,11 +120,19 @@ public class DataPointController {
     @RequestMapping(value = "/dataPoints/{id}", method = RequestMethod.DELETE)
     public ResponseEntity<?> deleteDataPoint(@PathVariable String id, Authentication authentication) {
 
-        String endUserId = getEndUserId(authentication);
+        String endUserId = getEndUserId(authentication, null);
 
         // only delete the data point if it belongs to the user associated with the access token
-        Long dataPointsDeleted = dataPointService.deleteByIdAndUserId(id, endUserId);
+        Long dataPointsDeleted = 0L;
 
+        if (endUserId != null) {
+            dataPointsDeleted = dataPointService.deleteByIdAndUserId(id, endUserId);
+        } else {
+            if (dataPointService.exists(id)) {
+                dataPointService.delete(id);
+                dataPointsDeleted = 1L;
+            }
+        }
         return new ResponseEntity<>(dataPointsDeleted == 0 ? NOT_FOUND : OK);
     }
 }
