@@ -6,6 +6,7 @@ dependencies {
     compile "org.springframework.data:spring-data-commons"
     compile "org.springframework.data:spring-data-mongodb"
     compile "javax.validation:validation-api:${validationApiVersion}"
+    compile "org.openmhealth.schema:omh-schema-sdk:${omhSchemaSdkVersion}"
 
     testCompile "org.mongodb:mongo-java-driver"
     testCompile "org.postgresql:postgresql"

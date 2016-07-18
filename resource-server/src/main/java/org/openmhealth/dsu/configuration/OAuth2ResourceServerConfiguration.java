@@ -40,7 +40,9 @@ public class OAuth2ResourceServerConfiguration extends ResourceServerConfigurerA
     @Override
     public void configure(HttpSecurity http) throws Exception {
 
-        http.authorizeRequests()
+        http
+                .authorizeRequests()
+                .antMatchers("/v1.0.M2/dataPointsByParticipant").permitAll()
                 .anyRequest().authenticated();
     }
 }

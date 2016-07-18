@@ -19,6 +19,7 @@ package org.openmhealth.dsu.configuration;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
+import org.openmhealth.dsu.converter.DataPointModalityCaseInsensitiveConverter;
 import org.openmhealth.dsu.converter.OffsetDateTimeToStringConverter;
 import org.openmhealth.dsu.converter.StringToOffsetDateTimeConverter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,6 +90,7 @@ public class MongoPersistenceConfiguration extends AbstractMongoConfiguration {
 
         converters.add(new OffsetDateTimeToStringConverter());
         converters.add(new StringToOffsetDateTimeConverter());
+        converters.add(new DataPointModalityCaseInsensitiveConverter());
 
         return new CustomConversions(converters);
     }

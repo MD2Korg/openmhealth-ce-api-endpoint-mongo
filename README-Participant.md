@@ -7,17 +7,17 @@ This repository contains the Java reference implementation of an [Open mHealth](
 
 ### tl;dr
 
-* this repository contains a secure endpoint that offers an API for storing and retrieving data points
+* this repository contains a secure endpoint that offers an API for storing and retrieving data points as well as participant APIs
 * data points conform to the Open mHealth [data point schema](http://www.openmhealth.org/documentation/#/schema-docs/schema-library/schemas/omh_data-point)
-* the code consists of an [OAuth 2.0](http://oauth.net/2/) authorization server and resource server
-* the authorization server manages access tokens
-* the resource server implements the data point API documented [here](docs/raml/API.yml)
+* the code consists of an [OAuth 2.0](http://oauth.net/2/) authorization server and resource server, but for participant API, you only require the resource server
+* the authorization server manages access tokens (not required for participant API)
+* the resource server implements the data point and participant API documented [here](docs/raml/API.yml)
 * the servers are written in Java using the [Spring Framework](http://projects.spring.io/spring-framework/), [Spring Security OAuth 2.0](http://projects.spring.io/spring-security-oauth/) and [Spring Boot](http://projects.spring.io/spring-boot/)
 * the authorization server needs [PostgreSQL](http://www.postgresql.org/) to store client credentials and access tokens, and [MongoDB](http://www.mongodb.org/) to store user accounts
 * the resource server needs PostgreSQL to read access tokens and MongoDB to store data points
 * you can get everything up and running in a few commands using Docker Compose
 * you can pull Docker containers for both servers from our [Docker Hub page](https://registry.hub.docker.com/repos/openmhealth/)
-* you can use a Postman [collection](https://www.getpostman.com/collections/18e6065476d59772c748) to easily issue API requests
+* you can use a Postman [collection](https://www.getpostman.com/collections/d63c6d072c20d03b412f) to easily issue API requests
   
 ### Overview
 
@@ -27,12 +27,8 @@ the [data-point](http://www.openmhealth.org/documentation/#/schema-docs/schema-l
 The header is designed to contain operational metadata, such as identifiers and provenance, whereas the body contains
 the data being acquired or computed.
 
-The *data point API* is a simple RESTful API that supports the creation, retrieval, and deletion of data points. The
-API authorizes access using OAuth 2.0.
-
-This implementation uses two components that reflect the [OAuth 2.0 specification](http://tools.ietf.org/html/rfc6749).
-A *resource server* manages data point resources and implements the data point API. The resource server authorizes
-requests using OAuth 2.0 access tokens. An *authorization server* manages the granting of access tokens.
+The *data point participant API* is a simple REST service that allows you to retrieve the participant IDs matching a given filter and does not currently require 
+authorization.
 
 ### Installation
 
@@ -77,7 +73,9 @@ It can take up to a minute for the containers to start up.
 
 We will add documentation on running the servers natively [on request](https://github.com/openmhealth/omh-dsu-ri/issues).
 
-The Docker commands in option 1 automatically initialize the Spring Security OAuth schema in the PostgreSQL database.
+The Docker commands in option 1 automatically initialize the Spring Security OAuth schema in the PostgreSQL database though
+this is not required if you only intend to use the participant API.
+
 To initialize the schema manually, you will need to source the
  [OAuth 2.0 DDL script](resources/rdbms/postgresql/oauth2-ddl.sql).
 
@@ -99,69 +97,6 @@ If you want to override the default configuration, you can either
 
 It is possible to use multiple resource servers with the same authorization server.
 
-#### Adding clients
-
-The authorization server manages the granting of access tokens to clients according to the OAuth 2.0 specification. Since it is
-good practice to not roll your own security infrastructure, we leverage [Spring Security OAuth 2.0](http://projects.spring.io/spring-security-oauth/)
-in this implementation. You can find the Spring Security OAuth 2.0 developer guide [here](http://projects.spring.io/spring-security-oauth/docs/oauth2.html).
-
-> It is beyond the scope of this document to explain the workings of OAuth 2.0, Spring Security and Spring Security OAuth.
-> The configuration information in this document is meant to help you get started, but is in no way a replacement
-> for reading the documentation of the respective standards and projects.
-
-The authorization server uses Spring Security OAuth 2.0's `JdbcClientDetailsService` to store OAuth 2.0 client credentials.
-This necessitates access to a PostgreSQL database, although we intend to release a MongoDB service down the road to
-require either MongoDB or PostgreSQL, but not both.
-
-The client details in the `oauth_client_details` table controls the identity and authentication of clients, the grant
-types they can use to show they have been granted authorization, and the resources they can access and actions they
-can take once they have an access token. Specifically, the client details table contains
-
-* the identity of the client (column `client_id`)
-* the resource identifiers (column `resource_ids`) the client can access , `dataPoints` in our case
-* the client secret, if any (column `client_secret`)
-* the scope (column `scope`) to which the client is limited, in our case some comma-separated combination of
-    * `read_data_points` if the client is allowed to read data points
-    * `write_data_points` if the client is allowed to write data points
-    * `delete_data_points` if the client is allowed to delete data points
-* the authorization grant types (column `authorized_grant_types`) the client is limited to, some comma-separated combination of
-    * `authorization_code`, documented in the [Authorization Code](http://tools.ietf.org/html/rfc6749#section-1.3.1) section of the OAuth 2.0 spec
-    * `implicit`, documented in the [Implicit](http://tools.ietf.org/html/rfc6749#section-1.3.2) section
-    * `password`, documented in the [Resource Owner Password Credentials](http://tools.ietf.org/html/rfc6749#section-1.3.3) section of the OAuth 2.0 spec
-    * `refresh_token`, documented in the [Refresh Token](http://tools.ietf.org/html/rfc6749#section-1.5) section
-    * `client_credentials` grant type in the [Client Credentials](http://tools.ietf.org/html/rfc6749#section-1.3.4) section
-* the Spring Security authorities (column `authorities`) the token bearer has, in our case `ROLE_CLIENT`
-
-To create a client,
-
-1. Connect to the `omh` PostgreSQL database.
-1. Add a row to the `oauth_client_details` table, as shown in this [sample script](resources/rdbms/common/oauth2-sample-data.sql).
-
-
-#### Adding end-users
-
-The data points accessible over the data point API belong to a user. In OAuth 2.0, this user is called the *resource owner* or *end-user*.
-A client requests authorization from the authorization server to access the data points of one or more users.
-
-The authorization server includes a simple RESTful endpoint to create users. To create a user, either execute the following command
-
-```bash
-curl -H "Content-Type:application/json" --data '{"username": "testUser", "password": "testUserPassword"}' http://host:8082/users
-```
-
-or use the *create an end-user/success or conflict* request in the Postman collection discussed [below](#issuing-requests-with-postman).
-
-The user creation endpoint is primitive by design; it is only meant as a way to bootstrap a couple users
-when first starting out. In general, the creation of users is typically the concern of a user management component,
-not the authorization server. And it's quite common
- for integrators to already have a user management system complete with its own user account database before introducing the
- authorization server.
-
-To integrate a user management system with the authorization server, you would
-
-1. Disable the `org.openmhealth.dsu.controller.EndUserController`, usually by commenting out the `@Controller` annotation.
-1. Provide your own implementation of either the `org.openmhealth.dsu.service.EndUserService` or the
- `org.openmhealth.dsu.repository.EndUserRepository`, populating `org.openmhealth.dsu.domain.EndUser` instances with data read from your own data stores or APIs.
 
 ### Issuing requests with Postman
 
@@ -177,16 +112,13 @@ To set up the collection,
 
 1. [Download Postman](https://chrome.google.com/webstore/detail/postman-rest-client-packa/fhbjgbiflinjbdggehcddcbncdddomop).
 1. [Start it](http://www.getpostman.com/docs/launch).
-1. Click the *Import* button, choose the *Download from link* tab and paste `https://www.getpostman.com/collections/d63c6d072c20d03b412f`
+1. Click the *Import* button, choose the *Download from link* tab and paste `https://www.getpostman.com/collections/b9dca4016664b3a145d6`
 1. The collection should now be available. The folder names describe the requests, and the request names describe the expected outcome.
 1. Create an [environment](https://www.getpostman.com/docs/environments). Environments provide values for the `{{...}}` placeholders in the collection.
    Add the following environment keys and values, possibly changing the values if you've customised the installation.
-    * `authorizationServer.host` - IP address of your Docker host (on Mac OS X and Windows, `docker-machine ip <host>` will print this IP to the console)
-    * `authorizationServer.port` -  `8082`
     * `resourceServer.host` -  IP address of your Docker host
     * `resourceServer.port` -  `8083`
-    * `accessToken` - issue the *get access token using RO password grant/success* request and copy the `access_token` value from the response here, without quotes
-    * `apiVersion` -  `1.0.M1` or `1.0.M2`
+    * `apiVersion` -  `v1.0.M2`
 
 To send a request, pick the request and click its *Send* button. The different requests should be self-explanatory,
 and correspond to the verbs and resources in the [data point API](docs/raml/API.yml).
@@ -196,9 +128,6 @@ which you can currently only see by clicking the corresponding *Edit folder* but
 [working on that](https://github.com/a85/POSTMan-Chrome-Extension/issues/816)). You can see the request descriptions by
 selecting the request.
 
-### Using the authorization server
-
-We may add documentation here if we find that the Postman collection isn't sufficient.
 
 ### Using the resource server
 
@@ -239,12 +168,17 @@ A data point looks something like this
 }
 ```
 
-We may add documentation here if we find that the Postman collection isn't sufficient.
 
-### Fetching datapoints
+### Fetching datapoint participants
 
-First of all, you need to grab an access token as explained above. Using that token, make a call to the dataPoint API specifying your as in the following example:
+The participant API can be located at the /v1.0.M2/dataPointsByParticipant location and accepts 3 parameters:
+* filter: A string taking an RSQL-formatted query (see below)
+* offset and limit: to obtain paging of data
+
+An example query would be:
 ``http://url:port/1.0.M2/dataPoints?filter=body.blood_glucose.value > 110 and header.creation_date_time >= 2014-11-01 and header.creation_date_time <= 2014-11-30``
+
+which returns a list of participant IDs.
 
 The filter syntax is described below.
 
@@ -273,7 +207,7 @@ The filter syntax is described below.
  Not in : `=out=`
  
  
- Exists: `=ex=`
+ Exists: `=ex=`  for example header.schema_id.version =ex= true
  
  **Arguments:**
  Argument can be a single value, or multiple values in parenthesis separated by comma. Value that doesn’t contain any reserved character or a white space can be unquoted, other arguments must be enclosed in single or double quotes.
@@ -305,7 +239,7 @@ The following features are scheduled for future milestones
 * support SSL out of the box
 * filter data points based on effective time frames
 
-If you have other feature requests, [create an issue for each](https://github.com/openmhealth/omh-dsu-ri/issues)
+If you have other feature requests, [create an issue for each](https://github.com/MD2Korg/openmhealth-ce-api-endpoint-mongo/issues)
 and we'll figure out how to prioritise them.
 
 
@@ -313,7 +247,7 @@ and we'll figure out how to prioritise them.
 
 If you'd like to contribute any code
 
-1. [Open an issue](https://github.com/openmhealth/omh-dsu-ri/issues) to let us know what you're going to work on.
+1. [Open an issue](https://github.com/MD2Korg/openmhealth-ce-api-endpoint-mongo/issues) to let us know what you're going to work on.
   1. This lets us give you feedback early and lets us put you in touch with people who can help.
 2. Fork this repository.
 3. Create your feature branch `feature/do-x-y-z` from the `develop` branch.
