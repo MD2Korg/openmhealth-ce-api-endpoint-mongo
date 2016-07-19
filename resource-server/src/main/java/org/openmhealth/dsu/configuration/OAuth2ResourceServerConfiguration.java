@@ -42,7 +42,7 @@ public class OAuth2ResourceServerConfiguration extends ResourceServerConfigurerA
 
         http
                 .authorizeRequests()
-                .antMatchers("/v1.0.M2/dataPointsByParticipant").permitAll()
+                .antMatchers("/v1.0.M2/participants").permitAll()
                 .anyRequest().authenticated();
     }
 }

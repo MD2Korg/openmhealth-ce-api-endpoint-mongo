@@ -58,7 +58,7 @@ public class DataPointSearchController {
     public static final String CREATED_BEFORE_PARAMETER = "created_before";
     public static final String CREATED_ON_OR_AFTER_PARAMETER = "created_on_or_after";
     public static final String END_USER_ID_PARAMETER = "end_user_id";
-    public static final String FILTER_PARAMETER = "filter";
+    public static final String FILTER_PARAMETER = "dataPointFilter";
     public static final String SCHEMA_NAME_PARAMETER = "schema_name";
     public static final String SCHEMA_NAMESPACE_PARAMETER = "schema_namespace";
     // TODO searching by schema version should support wildcards, sticking to exact match for now

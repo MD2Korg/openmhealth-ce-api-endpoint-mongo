@@ -26,20 +26,23 @@ import com.github.rutledgepaulv.rqe.conversions.parsers.StringToObjectBestEffort
 import com.github.rutledgepaulv.rqe.pipes.DefaultArgumentConversionPipe;
 import com.github.rutledgepaulv.rqe.pipes.QueryConversionPipeline;
 import com.github.rutledgepaulv.rqe.resolvers.MongoPersistentEntityFieldTypeResolver;
-import com.google.common.collect.Sets;
 import org.openmhealth.schema.domain.omh.DataPoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
 import javax.annotation.Nullable;
 import java.time.OffsetDateTime;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
 
 /**
@@ -78,8 +81,8 @@ public class MongoDataPointRepositoryImpl implements DataPointSearchRepositoryCu
         checkArgument(offset == null || offset >= 0);
         checkArgument(limit == null || limit >= 0);
 
-        Query query = newQuery(queryFilter);
 
+        Query query = newQuery(queryFilter);
         if (offset != null) {
             query.skip(offset);
         }
@@ -92,35 +95,19 @@ public class MongoDataPointRepositoryImpl implements DataPointSearchRepositoryCu
     }
 
     @Override
-    public Iterable<String> findParticipantsBySearchCriteria(String queryFilter, Integer offset, Integer limit) {
+    public Iterable<String> findParticipantsBySearchCriteria(String queryFilter) {
 
         checkNotNull(queryFilter);
-        checkArgument(offset == null || offset >= 0);
-        checkArgument(limit == null || limit >= 0);
 
-        Query query = newQuery(queryFilter);
+        Condition<GeneralQueryBuilder> condition = pipeline.apply(queryFilter.replace("&&", ";").replace("||", ","), DataPoint.class);
+        Criteria criteria = condition.query(new MongoVisitor());
 
-        if (offset != null) {
-            query.skip(offset);
-        }
 
-        if (limit != null) {
-            query.limit(limit);
-        }
-
-        // FIXME offload this to DB
-        Set<String> distinct = Sets.newHashSet();
-        mongoOperations
-                .find(query, DataPoint.class)
-                .forEach(dataPoint -> distinct.add(dataPoint.getHeader().getUserId()));
-
-//        AggregationResults<ParticipantCount> groupResults = mongoOperations.aggregate(
-//
-//                newAggregation(match(filterQuery), unwind("header.userId"),
-//                        group("header.userId").addToSet("header.userId").as("userId")), DataPoint.class, ParticipantCount.class);
-//        List<ParticipantCount> result = groupResults.getMappedResults();
-
-        return distinct;
+        AggregationResults<AggResult> groupResults = mongoOperations.aggregate(
+                newAggregation(match(criteria),
+                        unwind("header.userId"),
+                        group(fields("header.userId")).addToSet("header.userId").as("user_id")), DataPoint.class, AggResult.class);
+        return groupResults.getMappedResults().stream().map(dp -> dp.getUser_id()).collect(Collectors.toSet());
     }
 
 
@@ -167,5 +154,14 @@ public class MongoDataPointRepositoryImpl implements DataPointSearchRepositoryCu
         }
 
 
+    }
+
+    class AggResult {
+        String id;
+        Set<String> user_id;
+
+        public String getUser_id() {
+            return user_id.iterator().next();
+        }
     }
 }

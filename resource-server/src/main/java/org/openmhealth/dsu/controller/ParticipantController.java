@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import static org.openmhealth.dsu.controller.DataPointSearchController.*;
+import static org.openmhealth.dsu.controller.DataPointSearchController.FILTER_PARAMETER;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
@@ -43,23 +43,15 @@ public class ParticipantController {
     private DataPointSearchService dataPointSearchService;
 
     /**
-     * Finds and retrieves data points returning the participant ID.
-     *
-     * @param offset the number of data points to skip
-     * @param limit  the number of data points to return
+     * Finds and retrieves data point participants
+     * @param queryFilter a filter to limit results
      * @return a list of matching data points
      */
-    // TODO confirm if HEAD handling needs anything additional
-    // only allow clients with read scope to read data points
-    // TODO look into any meaningful @PostAuthorize filtering
-    @RequestMapping(value = "/v1.0.M2/dataPointsByParticipant", method = {HEAD, GET}, produces = APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/v1.0.M2/participants", method = {HEAD, GET}, produces = APPLICATION_JSON_VALUE)
     @ResponseBody
-    public ResponseEntity<Iterable<String>> findDataPointParticipants(
-            @RequestParam(value = FILTER_PARAMETER) final String queryFilter,
-            @RequestParam(value = RESULT_OFFSET_PARAMETER, defaultValue = "0") final Integer offset,
-            @RequestParam(value = RESULT_LIMIT_PARAMETER, defaultValue = DEFAULT_RESULT_LIMIT) final Integer limit) {
+    public ResponseEntity<Iterable<String>> findDataPointParticipants(@RequestParam(value = FILTER_PARAMETER) final String queryFilter) {
 
-        Iterable<String> dataPoints = dataPointSearchService.findParticipantsBySearchCriteria(queryFilter, offset, limit);
+        Iterable<String> dataPoints = dataPointSearchService.findParticipantsBySearchCriteria(queryFilter);
 
         return new ResponseEntity<>(dataPoints, new HttpHeaders(), OK);
     }

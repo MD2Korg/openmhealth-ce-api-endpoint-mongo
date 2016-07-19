@@ -33,6 +33,7 @@ public interface DataPointSearchRepositoryCustom {
                                              @Nullable Integer limit);
 
 
-    Iterable<String> findParticipantsBySearchCriteria(String queryFilter, Integer offset, Integer limit);
+    Iterable<String> findParticipantsBySearchCriteria(String queryFilter);
+
 
 }

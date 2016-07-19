@@ -133,7 +133,7 @@ public abstract class DataPointRepositoryIntegrationTests {
     @Test
     public void findParticipantBySearchCriteriaWithMatchingFilterShouldReturnDataPoints() {
         List<String> dataPoints =
-                newArrayList(repository.findParticipantsBySearchCriteria("body.activity_name=='walking' and " + newSearchCriteriaBuilder().build().asQueryFilter(), null, null));
+                newArrayList(repository.findParticipantsBySearchCriteria("body.activity_name=='walking' and " + newSearchCriteriaBuilder().build().asQueryFilter()));
 //
         assertThat(dataPoints, hasSize(1));
         assertEquals("test", dataPoints.get(0));

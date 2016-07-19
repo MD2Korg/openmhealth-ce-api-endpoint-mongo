@@ -50,12 +50,10 @@ public class DataPointSearchServiceImpl implements DataPointSearchService {
 
 
     @Override
-    public Iterable<String> findParticipantsBySearchCriteria(String queryFilter, Integer offset, Integer limit) {
+    public Iterable<String> findParticipantsBySearchCriteria(String queryFilter) {
         checkNotNull(queryFilter);
-        checkArgument(offset == null || offset >= 0);
-        checkArgument(limit == null || limit >= 0);
 
-        return repository.findParticipantsBySearchCriteria(queryFilter, offset, limit);
+        return repository.findParticipantsBySearchCriteria(queryFilter);
     }
 
 }
