@@ -26,17 +26,21 @@ import com.github.rutledgepaulv.rqe.conversions.parsers.StringToObjectBestEffort
 import com.github.rutledgepaulv.rqe.pipes.DefaultArgumentConversionPipe;
 import com.github.rutledgepaulv.rqe.pipes.QueryConversionPipeline;
 import com.github.rutledgepaulv.rqe.resolvers.MongoPersistentEntityFieldTypeResolver;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.openmhealth.schema.domain.omh.DataPoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
 import javax.annotation.Nullable;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -95,19 +99,35 @@ public class MongoDataPointRepositoryImpl implements DataPointSearchRepositoryCu
     }
 
     @Override
-    public Iterable<String> findParticipantsBySearchCriteria(String queryFilter) {
+    public Iterable<String> findParticipantsBySearchCriteria(List<String> queryFilter) {
 
         checkNotNull(queryFilter);
 
-        Condition<GeneralQueryBuilder> condition = pipeline.apply(queryFilter.replace("&&", ";").replace("||", ","), DataPoint.class);
-        Criteria criteria = condition.query(new MongoVisitor());
+        List<Criteria> criterias = Lists.newLinkedList();
+        queryFilter.forEach(qf -> criterias.add(pipeline.apply(qf.replace("&&", ";").replace("||", ","), DataPoint.class).query(new MongoVisitor())));
 
 
-        AggregationResults<AggResult> groupResults = mongoOperations.aggregate(
-                newAggregation(match(criteria),
-                        unwind("header.userId"),
-                        group(fields("header.userId")).addToSet("header.userId").as("user_id")), DataPoint.class, AggResult.class);
-        return groupResults.getMappedResults().stream().map(dp -> dp.getUser_id()).collect(Collectors.toSet());
+        List<Aggregation> aggregations = Lists.newArrayList();
+        criterias.forEach(c -> aggregations.add(newAggregation(match(c),
+                unwind("header.userId"),
+                group(fields("header.userId")).addToSet("header.userId").as("user_id"))));
+
+        Set<String> result = Sets.newHashSet();
+        boolean first = true;
+        for (Aggregation agg : aggregations) {
+            AggregationResults<AggResult> groupResults = mongoOperations.aggregate(agg
+                    , DataPoint.class, AggResult.class);
+
+
+            Set<String> mappedResults = groupResults.getMappedResults().stream().map(dp -> dp.getUser_id()).collect(Collectors.toSet());
+            if (first) {
+                result.addAll(mappedResults);
+                first = false;
+            } else {
+                result.retainAll(mappedResults);
+            }
+        }
+        return result;
     }
 
 

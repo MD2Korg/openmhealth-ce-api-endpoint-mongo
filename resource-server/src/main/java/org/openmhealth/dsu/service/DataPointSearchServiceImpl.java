@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -50,7 +51,7 @@ public class DataPointSearchServiceImpl implements DataPointSearchService {
 
 
     @Override
-    public Iterable<String> findParticipantsBySearchCriteria(String queryFilter) {
+    public Iterable<String> findParticipantsBySearchCriteria(List<String> queryFilter) {
         checkNotNull(queryFilter);
 
         return repository.findParticipantsBySearchCriteria(queryFilter);

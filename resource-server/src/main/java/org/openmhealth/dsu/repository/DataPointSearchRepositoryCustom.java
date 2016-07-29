@@ -19,6 +19,7 @@ package org.openmhealth.dsu.repository;
 import org.openmhealth.schema.domain.omh.DataPoint;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 
 /**
@@ -33,7 +34,7 @@ public interface DataPointSearchRepositoryCustom {
                                              @Nullable Integer limit);
 
 
-    Iterable<String> findParticipantsBySearchCriteria(String queryFilter);
+    Iterable<String> findParticipantsBySearchCriteria(List<String> queryFilter);
 
 
 }

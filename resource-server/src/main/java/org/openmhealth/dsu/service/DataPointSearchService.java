@@ -19,6 +19,7 @@ package org.openmhealth.dsu.service;
 import org.openmhealth.schema.domain.omh.DataPoint;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 
 /**
@@ -43,5 +44,5 @@ public interface DataPointSearchService {
      * @param queryFilter RSQL-formatted query to parse and pass along to mongo
      * @return Set of participant IDs
      */
-    Iterable<String> findParticipantsBySearchCriteria(String queryFilter);
+    Iterable<String> findParticipantsBySearchCriteria(List<String> queryFilter);
 }
