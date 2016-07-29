@@ -52,7 +52,7 @@ securitySchemes:
         pattern: "^[a-zA-Z0-9.-]+"
         example: "omh"
         required: true
-      query:
+      dataPointFilter:
         description: the optional filter to further restrict points
         type: string
         pattern: "^[a-zA-Z0-9.-]+"
